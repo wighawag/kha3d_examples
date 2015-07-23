@@ -12,6 +12,12 @@ install kha via haxelib:
 haxelib install kha
 ```
 
+install also khage :
+
+```
+haxelib install khage
+```
+
 then to try each tutorial go in their respective folder and do:
 
 ```
