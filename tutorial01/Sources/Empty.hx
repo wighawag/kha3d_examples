@@ -4,6 +4,8 @@ import kha.Game;
 import kha.Framebuffer;
 import kha.Color;
 
+using Khage;
+
 class Empty extends Game {
 
 	public function new() {
@@ -11,16 +13,10 @@ class Empty extends Game {
 	}
 
 	override public function render(frame:Framebuffer) {
-		// A graphics object which lets us perform 3D operations
-		var g = frame.g4;
 
-		// Begin rendering
-        g.begin();
-
-        // Clear screen to black
-		g.clear(Color.Black);
-
-		// End rendering
-		g.end();
-    }
+		frame.usingG4({
+				g4.clear(Color.Black);
+		});
+		
+  }
 }

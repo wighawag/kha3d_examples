@@ -5,6 +5,9 @@
 		"width": 640,
 		"height": 480
 	},
+	"libraries": [
+		"khage"
+	],
 	"assets": [],
 	"rooms": []
 }

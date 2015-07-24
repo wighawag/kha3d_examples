@@ -6,6 +6,9 @@
 		"height": 480,
 		"antiAliasingSamples": 2
 	},
+	"libraries": [
+		"khage"
+	],
 	"assets": [],
 	"rooms": []
 }

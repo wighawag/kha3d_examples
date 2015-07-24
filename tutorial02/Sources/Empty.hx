@@ -4,9 +4,7 @@ import kha.Game;
 import kha.Framebuffer;
 import kha.Color;
 
-import khage.g4.Program;
 import khage.g4.Buffer;
-import khage.g4.Viewport;
 
 using Khage;
 
@@ -19,7 +17,7 @@ class Empty extends Game {
 	}
 
 	override public function init() {
-		buffer = new Buffer<{pos:Vec3}>(StaticUsage);
+		buffer = new Buffer<{pos:Vec3}>(3,3,StaticUsage);
 
 		buffer.rewind();
 		buffer.write_pos(-1.0, -1.0, 0.0); // Bottom-left
