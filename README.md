@@ -1,8 +1,6 @@
 # kha3d_examples
 This is a modified version of the tutorials at [http://luboslenco.com/kha3d/](http://luboslenco.com/kha3d/)
 
-Not all of them are transformed yet (only tutorial 01 to 04  for now)
-
 It use [KHAGE](https://github.com/wighawag/khage)
 This simplify a lot the code and provide type safety on shaders
 

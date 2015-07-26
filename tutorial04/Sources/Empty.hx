@@ -132,7 +132,6 @@ class Empty extends Game {
 			buffer.write_col(colors[i*3+0],colors[i*3+1],colors[i*3+2]);
 		}
 
-
 		for (i in 0...numVertices) {
 			buffer.writeIndex(i);
 		}

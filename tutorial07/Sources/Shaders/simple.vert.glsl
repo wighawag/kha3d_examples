@@ -5,7 +5,7 @@ precision highp float;
 // Input vertex data, different for all executions of this shader
 attribute vec3 pos;
 attribute vec2 uv;
-attribute vec2 nor;
+attribute vec3 nor;
 
 // Output data: will be interpolated for each fragment.
 varying vec2 vUV;

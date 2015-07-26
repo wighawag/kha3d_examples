@@ -9,49 +9,36 @@ import kha.Configuration;
 import kha.Image;
 import kha.Scheduler;
 import kha.Key;
-import kha.graphics4.TextureUnit;
-import kha.graphics4.Program;
-import kha.graphics4.VertexStructure;
-import kha.graphics4.VertexBuffer;
-import kha.graphics4.IndexBuffer;
-import kha.graphics4.FragmentShader;
-import kha.graphics4.VertexShader;
-import kha.graphics4.VertexData;
+
 import kha.graphics4.Usage;
-import kha.graphics4.ConstantLocation;
 import kha.graphics4.CompareMode;
 import kha.math.Matrix4;
 import kha.math.Vector3;
 
+import kha.g4.Buffer;
+using Khage;
+
 class Empty extends Game {
 
-	var vertexBuffer:VertexBuffer;
-	var indexBuffer:IndexBuffer;
-	var program:Program;
-
+	var buffer: Buffer<{pos:Vec3,uv:Vec2,nor:Vec3}>;
 	var mvp:Matrix4;
-	var mvpID:ConstantLocation;
-	var viewMatrixID:ConstantLocation;
-	var modelMatrixID:ConstantLocation;
-	var lightID:ConstantLocation;
 
 	var model:Matrix4;
 	var view:Matrix4;
 	var projection:Matrix4;
 
-	var textureID:TextureUnit;
-    var image:Image;
+  var image:Image;
 
-    var lastTime = 0.0;
+  var lastTime = 0.0;
 
 	var position:Vector3 = new Vector3(0, 0, 5); // Initial position: on +Z
 	var horizontalAngle = 3.14; // Initial horizontal angle: toward -Z
 	var verticalAngle = 0.0; // Initial vertical angle: none
 
 	var moveForward = false;
-    var moveBackward = false;
-    var strafeLeft = false;
-    var strafeRight = false;
+  var moveBackward = false;
+  var strafeLeft = false;
+  var strafeRight = false;
 	var isMouseDown = false;
 
 	var mouseX = 0.0;
@@ -74,34 +61,6 @@ class Empty extends Game {
     }
 
 	function loadingFinished() {
-		// Define vertex structure
-		var structure = new VertexStructure();
-        structure.add("pos", VertexData.Float3);
-        structure.add("uv", VertexData.Float2);
-        structure.add("nor", VertexData.Float3);
-        // Save length - we store position, uv and normal data
-        var structureLength = 8;
-
-        // Load shaders - these are located in 'Sources/Shaders' directory
-        // and Kha includes them automatically
-		var fragmentShader = new FragmentShader(Loader.the.getShader("simple.frag"));
-		var vertexShader = new VertexShader(Loader.the.getShader("simple.vert"));
-	
-		// Link program with fragment and vertex shaders we loaded
-		program = new Program();
-		program.setFragmentShader(fragmentShader);
-		program.setVertexShader(vertexShader);
-		program.link(structure);
-
-		// Get handles for our uniforms
-		mvpID = program.getConstantLocation("MVP");
-		viewMatrixID = program.getConstantLocation("V");
-		modelMatrixID = program.getConstantLocation("M");
-		lightID = program.getConstantLocation("lightPos");
-
-		// Get a handle for texture sample
-		textureID = program.getTextureUnit("myTextureSampler");
-
 		// Texture
 		image = Loader.the.getImage("uvmap");
 
@@ -109,7 +68,7 @@ class Empty extends Game {
 		projection = Matrix4.perspectiveProjection(45.0, 4.0 / 3.0, 0.1, 100.0);
 		// Or, for an ortho camera
 		//projection = Matrix4.orthogonalProjection(-10.0, 10.0, -10.0, 10.0, 0.0, 100.0); // In world coordinates
-		
+
 		// Camera matrix
 		view = Matrix4.lookAt(new Vector3(4, 3, 3), // Camera is at (4, 3, 3), in World Space
 							  new Vector3(0, 0, 0), // and looks at the origin
@@ -130,32 +89,19 @@ class Empty extends Game {
 		var data = obj.data;
 		var indices = obj.indices;
 
-		// Create vertex buffer
-		vertexBuffer = new VertexBuffer(
-			Std.int(data.length / structureLength), // Vertex count
-			structure, // Vertex structure
-			Usage.StaticUsage // Vertex data will stay the same
-		);
+		var numVertices : Int = Std.int(data.length/8);
+		buffer = new Buffer<{pos:Vec3,uv:Vec2,nor:Vec3}>(numVertices,indices.length,StaticUsage);
 
-		// Copy data to vertex buffer
-		var vbData = vertexBuffer.lock();
-		for (i in 0...vbData.length) {
-			vbData[i] = data[i];
+		buffer.rewind();
+		for (i in 0...numVertices) {
+			buffer.write_pos(data[i*8+0],data[i*8+1],data[i*8+2]);
+			buffer.write_uv(data[i*8+3],data[i*8+4]);
+			buffer.write_nor(data[i*8+5],data[i*8+6],data[i*8+7]);
 		}
-		vertexBuffer.unlock();
 
-		// Create index buffer
-		indexBuffer = new IndexBuffer(
-			indices.length, // Number of indices for our cube
-			Usage.StaticUsage // Index data will stay the same
-		);
-		
-		// Copy indices to index buffer
-		var iData = indexBuffer.lock();
-		for (i in 0...iData.length) {
-			iData[i] = indices[i];
+		for (index in indices) {
+			buffer.writeIndex(index);
 		}
-		indexBuffer.unlock();
 
 		// Add mouse and keyboard listeners
 		kha.input.Mouse.get().notify(onMouseDown, onMouseUp, onMouseMove, null);
@@ -169,44 +115,24 @@ class Empty extends Game {
 
 	override public function render(frame:Framebuffer) {
 		// A graphics object which lets us perform 3D operations
-		var g = frame.g4;
+		frame.usingG4({
+			// Set depth mode
+			g4.setDepthMode(true, CompareMode.Less);
+			// Clear screen
+			g4.clear(Color.fromFloats(0.0, 0.0, 0.3), 1.0);
 
-		// Begin rendering
-        g.begin();
+			g4.usingProgram("simple.vert","simple.frag",{
+				program.set_MVP(mvp);
+				program.set_M(model);
+				program.set_V(view);
+				program.set_lightPos(4,4,4);
+				program.set_myTextureSampler(image);
+				program.draw(buffer);
+			});
 
-        // Set depth mode
-        g.setDepthMode(true, CompareMode.Less);
+		});
 
-        // Set culling
-        g.setCullMode(kha.graphics4.CullMode.CounterClockwise);
-
-        // Clear screen
-		g.clear(Color.fromFloats(0.0, 0.0, 0.3), 1.0);
-
-		// Bind data we want to draw
-		g.setVertexBuffer(vertexBuffer);
-		g.setIndexBuffer(indexBuffer);
-
-		// Bind shader program we want to draw with
-		g.setProgram(program);
-
-		// Set our uniforms
-		g.setMatrix(mvpID, mvp);
-		g.setMatrix(modelMatrixID, model);
-		g.setMatrix(viewMatrixID, view);
-
-		// Set light position to (4, 4, 4)
-		g.setFloat3(lightID, 4, 4, 4);
-
-		// Set texture
-		g.setTexture(textureID, image);
-
-		// Draw!
-		g.drawIndexedVertices();
-
-		// End rendering
-		g.end();
-    }
+  }
 
     override public function update() {
     	// Compute time difference between current and last frame
@@ -225,14 +151,14 @@ class Empty extends Game {
 			Math.sin(verticalAngle),
 			Math.cos(verticalAngle) * Math.cos(horizontalAngle)
 		);
-		
+
 		// Right vector
 		var right = new Vector3(
-			Math.sin(horizontalAngle - 3.14 / 2.0), 
+			Math.sin(horizontalAngle - 3.14 / 2.0),
 			0,
 			Math.cos(horizontalAngle - 3.14 / 2.0)
 		);
-		
+
 		// Up vector
 		var up = right.cross(direction);
 
@@ -256,13 +182,13 @@ class Empty extends Game {
 
 		// Look vector
 		var look = position.add(direction);
-		
+
 		// Camera matrix
 		view = Matrix4.lookAt(position, // Camera is here
 							  look, // and looks here : at the same position, plus "direction"
 							  up // Head is up (set to (0, -1, 0) to look upside-down)
 		);
-		
+
 		// Update model-view-projection matrix
 		mvp = Matrix4.identity();
 		mvp = mvp.multmat(projection);
