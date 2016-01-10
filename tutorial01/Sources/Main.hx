@@ -3,6 +3,7 @@ package;
 import kha.System;
 
 class Main {
+
 	public static function main() {
 		System.init("Empty", 640, 480, init);
 	}
