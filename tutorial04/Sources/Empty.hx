@@ -1,19 +1,15 @@
 package ;
 
-import kha.Game;
 import kha.Framebuffer;
 import kha.Color;
 
-import kha.graphics4.Usage;
-import kha.graphics4.CompareMode;
-
-import kha.math.Matrix4;
-import kha.math.Vector3;
+import kha.math.FastMatrix4;
+import kha.math.FastVector3;
 
 import khage.g4.Buffer;
 using Khage;
 
-class Empty extends Game {
+class Empty{
 
 	// An array of vertices to form a cube
 	static var vertices:Array<Float> = [
@@ -95,30 +91,26 @@ class Empty extends Game {
 	];
 
 	var buffer:Buffer<{pos:Vec3,col:Vec3}>;
-	var mvp:Matrix4;
+	var mvp:FastMatrix4;
 
 	public function new() {
-		super("Empty");
-	}
-
-	override public function init() {
 
 		// Projection matrix: 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
-		var projection = Matrix4.perspectiveProjection(45.0, 4.0 / 3.0, 0.1, 100.0);
+		var projection = FastMatrix4.perspectiveProjection(45.0, 4.0 / 3.0, 0.1, 100.0);
 		// Or, for an ortho camera
 		//var projection = Matrix4.orthogonalProjection(-10.0, 10.0, -10.0, 10.0, 0.0, 100.0); // In world coordinates
 
 		// Camera matrix
-		var view = Matrix4.lookAt(new Vector3(4, 3, 3), // Camera is at (4, 3, 3), in World Space
-								  new Vector3(0, 0, 0), // and looks at the origin
-								  new Vector3(0, 1, 0) // Head is up (set to (0, -1, 0) to look upside-down)
+		var view = FastMatrix4.lookAt(new FastVector3(4, 3, 3), // Camera is at (4, 3, 3), in World Space
+								  new FastVector3(0, 0, 0), // and looks at the origin
+								  new FastVector3(0, 1, 0) // Head is up (set to (0, -1, 0) to look upside-down)
 		);
 
 		// Model matrix: an identity matrix (model will be at the origin)
-		var model = Matrix4.identity();
+		var model = FastMatrix4.identity();
 		// Our ModelViewProjection: multiplication of our 3 matrices
 		// Remember, matrix multiplication is the other way around
-		mvp = Matrix4.identity();
+		mvp = FastMatrix4.identity();
 		mvp = mvp.multmat(projection);
 		mvp = mvp.multmat(view);
 		mvp = mvp.multmat(model);
@@ -138,17 +130,15 @@ class Empty extends Game {
 
   }
 
-	override public function render(frame:Framebuffer) {
+	public function render(frame:Framebuffer) {
 		// A graphics object which lets us perform 3D operations
 		frame.usingG4({
-			// Set depth mode
-			g4.setDepthMode(true, CompareMode.Less);
 			// Clear screen
 			g4.clear(Color.fromFloats(0.0, 0.0, 0.3), 1.0);
 
-			g4.usingProgram("simple.vert","simple.frag",{
-				program.set_MVP(mvp);
-				program.draw(buffer);
+			g4.usingPipeline("simple.vert","simple.frag",{depth:{write:true, mode: CompareMode.Less}},{
+				pipeline.set_MVP(mvp);
+				pipeline.draw(buffer);
 			});
 
 		});

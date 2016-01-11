@@ -1,6 +1,5 @@
 package;
 
-import kha.Game;
 import kha.Framebuffer;
 import kha.Color;
 
@@ -8,15 +7,11 @@ import khage.g4.Buffer;
 
 using Khage;
 
-class Empty extends Game {
+class Empty {
 
 	var buffer : Buffer<{pos:Vec3}>;
 
 	public function new() {
-		super("Empty", false);
-	}
-
-	override public function init() {
 		buffer = new Buffer<{pos:Vec3}>(3,3,StaticUsage);
 
 		buffer.rewind();
@@ -29,11 +24,11 @@ class Empty extends Game {
 		buffer.writeIndex(2);
   }
 
-	override public function render(frame:Framebuffer) {
+	public function render(frame:Framebuffer) {
 		frame.usingG4({
-			g4.usingProgram("simple.vert","simple.frag",{
+			g4.usingPipeline("simple.vert","simple.frag",{
 				g4.clear(Color.Black);
-				program.draw(buffer);
+				pipeline.draw(buffer);
 			});
 
 		});

@@ -1,0 +1,1423 @@
+diff --git a/tutorial01/Sources/Empty.hx b/tutorial01/Sources/Empty.hx
+index 5a00c18..a5c151f 100644
+--- a/tutorial01/Sources/Empty.hx
++++ b/tutorial01/Sources/Empty.hx
+@@ -3,42 +3,18 @@ package;
+ import kha.Framebuffer;
+ import kha.Color;
+ 
+-import khage.g4.Buffer;
+-
+ using Khage;
+ 
+ class Empty {
+ 
+-	var buffer : Buffer<{pos:Vec3}>;
+-
+ 	public function new() {
+         
+-		buffer = new Buffer<{pos:Vec3}>(3,3,StaticUsage);
+-
+-		buffer.rewind();
+-		buffer.write_pos(-1.0, -1.0, 0.0); // Bottom-left
+-	  	buffer.write_pos(1.0, -1.0, 0.0); // Bottom-right
+-	  	buffer.write_pos(0.0,  1.0, 0.0);  // Top
+-
+-		buffer.writeIndex(0);
+-		buffer.writeIndex(1);
+-		buffer.writeIndex(2);		
+-        
+     }
+ 
+ 	public function render(frame:Framebuffer) {
+ 		frame.usingG4({
+ 			g4.usingPipeline("simple.vert","simple.frag",{
+-				stencil:{
+-					mode: CompareMode.Always
+-				},
+-				depth:{
+-					write:false,
+-					mode:CompareMode.Always
+-				}
+-			},{
+-				g4.clear(Color.Green);
+-				pipeline.draw(buffer);
++				g4.clear(Color.Black);
+ 			});
+ 
+ 		});
+diff --git a/tutorial02/Sources/Empty.hx b/tutorial02/Sources/Empty.hx
+index e7e89d4..bf29258 100644
+--- a/tutorial02/Sources/Empty.hx
++++ b/tutorial02/Sources/Empty.hx
+@@ -1,6 +1,5 @@
+ package;
+ 
+-import kha.Game;
+ import kha.Framebuffer;
+ import kha.Color;
+ 
+@@ -8,15 +7,11 @@ import khage.g4.Buffer;
+ 
+ using Khage;
+ 
+-class Empty extends Game {
++class Empty {
+ 
+ 	var buffer : Buffer<{pos:Vec3}>;
+ 
+ 	public function new() {
+-		super("Empty", false);
+-	}
+-
+-	override public function init() {
+ 		buffer = new Buffer<{pos:Vec3}>(3,3,StaticUsage);
+ 
+ 		buffer.rewind();
+@@ -29,11 +24,11 @@ class Empty extends Game {
+ 		buffer.writeIndex(2);
+   }
+ 
+-	override public function render(frame:Framebuffer) {
++	public function render(frame:Framebuffer) {
+ 		frame.usingG4({
+-			g4.usingProgram("simple.vert","simple.frag",{
++			g4.usingPipeline("simple.vert","simple.frag",{
+ 				g4.clear(Color.Black);
+-				program.draw(buffer);
++				pipeline.draw(buffer);
+ 			});
+ 
+ 		});
+diff --git a/tutorial02/Sources/Main.hx b/tutorial02/Sources/Main.hx
+index 663ea3d..57c9fa8 100644
+--- a/tutorial02/Sources/Main.hx
++++ b/tutorial02/Sources/Main.hx
+@@ -1,10 +1,15 @@
+ package;
+ 
+-import kha.Starter;
++import kha.System;
+ 
+ class Main {
++
+ 	public static function main() {
+-		var starter = new Starter();
+-		starter.start(new Empty());
++		System.init("Empty", 640, 480, init);
++	}
++
++	static function init() {
++		var game = new Empty();
++		System.notifyOnRender(game.render);
+ 	}
+ }
+diff --git a/tutorial02/khafile.js b/tutorial02/khafile.js
+new file mode 100644
+index 0000000..b28b1a1
+--- /dev/null
++++ b/tutorial02/khafile.js
+@@ -0,0 +1,7 @@
++var project = new Project('Empty');
++
++project.addSources('Sources');
++project.addShaders('Sources/Shaders/**');
++project.addLibrary("khage");
++
++return project;
+\ No newline at end of file
+diff --git a/tutorial02/project.kha b/tutorial02/project.kha
+deleted file mode 100644
+index ef93ee5..0000000
+--- a/tutorial02/project.kha
++++ /dev/null
+@@ -1,13 +0,0 @@
+-{
+-	"format": 2,
+-	"game": {
+-		"name": "Empty",
+-		"width": 640,
+-		"height": 480
+-	},
+-	"libraries": [
+-		"khage"
+-	],
+-	"assets": [],
+-	"rooms": []
+-}
+diff --git a/tutorial03/Sources/Empty.hx b/tutorial03/Sources/Empty.hx
+index de63ee1..4eccaf0 100644
+--- a/tutorial03/Sources/Empty.hx
++++ b/tutorial03/Sources/Empty.hx
+@@ -1,44 +1,39 @@
+ package;
+ 
+-import kha.Game;
+ import kha.Framebuffer;
+ import kha.Color;
+ 
+ import kha.graphics4.Usage;
+ 
+-import kha.math.Matrix4;
+-import kha.math.Vector3;
++import kha.math.FastMatrix4;
++import kha.math.FastVector3;
+ 
+ import khage.g4.Buffer;
+ using Khage;
+ 
+-class Empty extends Game {
++class Empty {
+ 
+-	var mvp:Matrix4;
++	var mvp:FastMatrix4;
+ 	var buffer : Buffer<{pos:Vec3}>;
+ 
+ 	public function new() {
+-		super("Empty");
+-	}
+-
+-	override public function init() {
+ 
+ 		// Projection matrix: 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
+-		var projection = Matrix4.perspectiveProjection(45.0, 4.0 / 3.0, 0.1, 100.0);
++		var projection = FastMatrix4.perspectiveProjection(45.0, 4.0 / 3.0, 0.1, 100.0);
+ 		// Or, for an ortho camera
+ 		//var projection = Matrix4.orthogonalProjection(-10.0, 10.0, -10.0, 10.0, 0.0, 100.0); // In world coordinates
+ 
+ 		// Camera matrix
+-		var view = Matrix4.lookAt(new Vector3(4, 3, 3), // Camera is at (4, 3, 3), in World Space
+-								  new Vector3(0, 0, 0), // and looks at the origin
+-								  new Vector3(0, 1, 0) // Head is up (set to (0, -1, 0) to look upside-down)
++		var view = FastMatrix4.lookAt(new FastVector3(4, 3, 3), // Camera is at (4, 3, 3), in World Space
++								  new FastVector3(0, 0, 0), // and looks at the origin
++								  new FastVector3(0, 1, 0) // Head is up (set to (0, -1, 0) to look upside-down)
+ 		);
+ 
+ 		// Model matrix: an identity matrix (model will be at the origin)
+-		var model = Matrix4.identity();
++		var model = FastMatrix4.identity();
+ 		// Our ModelViewProjection: multiplication of our 3 matrices
+ 		// Remember, matrix multiplication is the other way around
+-		mvp = Matrix4.identity();
++		mvp = FastMatrix4.identity();
+ 		mvp = mvp.multmat(projection);
+ 		mvp = mvp.multmat(view);
+ 		mvp = mvp.multmat(model);
+@@ -56,13 +51,13 @@ class Empty extends Game {
+ 
+   }
+ 
+-	override public function render(frame:Framebuffer) {
++	public function render(frame:Framebuffer) {
+ 		frame.usingG4({
+ 			g4.clear(Color.fromFloats(0.0, 0.0, 0.3));
+ 
+-			g4.usingProgram("simple.vert","simple.frag",{
+-				program.set_MVP(mvp);
+-				program.draw(buffer);
++			g4.usingPipeline("simple.vert","simple.frag",{
++				pipeline.set_MVP(mvp);
++				pipeline.draw(buffer);
+ 			});
+ 
+ 		});
+diff --git a/tutorial03/Sources/Main.hx b/tutorial03/Sources/Main.hx
+index 663ea3d..57c9fa8 100644
+--- a/tutorial03/Sources/Main.hx
++++ b/tutorial03/Sources/Main.hx
+@@ -1,10 +1,15 @@
+ package;
+ 
+-import kha.Starter;
++import kha.System;
+ 
+ class Main {
++
+ 	public static function main() {
+-		var starter = new Starter();
+-		starter.start(new Empty());
++		System.init("Empty", 640, 480, init);
++	}
++
++	static function init() {
++		var game = new Empty();
++		System.notifyOnRender(game.render);
+ 	}
+ }
+diff --git a/tutorial03/khafile.js b/tutorial03/khafile.js
+new file mode 100644
+index 0000000..b28b1a1
+--- /dev/null
++++ b/tutorial03/khafile.js
+@@ -0,0 +1,7 @@
++var project = new Project('Empty');
++
++project.addSources('Sources');
++project.addShaders('Sources/Shaders/**');
++project.addLibrary("khage");
++
++return project;
+\ No newline at end of file
+diff --git a/tutorial03/project.kha b/tutorial03/project.kha
+deleted file mode 100644
+index 1bd2fc9..0000000
+--- a/tutorial03/project.kha
++++ /dev/null
+@@ -1,14 +0,0 @@
+-{
+-	"format": 2,
+-	"game": {
+-		"name": "Empty",
+-		"width": 640,
+-		"height": 480,
+-		"antiAliasingSamples": 2
+-	},
+-	"libraries": [
+-		"khage"
+-	],
+-	"assets": [],
+-	"rooms": []
+-}
+diff --git a/tutorial04/Sources/Empty.hx b/tutorial04/Sources/Empty.hx
+index 9a7e077..77698fd 100644
+--- a/tutorial04/Sources/Empty.hx
++++ b/tutorial04/Sources/Empty.hx
+@@ -1,19 +1,15 @@
+ package ;
+ 
+-import kha.Game;
+ import kha.Framebuffer;
+ import kha.Color;
+ 
+-import kha.graphics4.Usage;
+-import kha.graphics4.CompareMode;
+-
+-import kha.math.Matrix4;
+-import kha.math.Vector3;
++import kha.math.FastMatrix4;
++import kha.math.FastVector3;
+ 
+ import khage.g4.Buffer;
+ using Khage;
+ 
+-class Empty extends Game {
++class Empty{
+ 
+ 	// An array of vertices to form a cube
+ 	static var vertices:Array<Float> = [
+@@ -95,30 +91,26 @@ class Empty extends Game {
+ 	];
+ 
+ 	var buffer:Buffer<{pos:Vec3,col:Vec3}>;
+-	var mvp:Matrix4;
++	var mvp:FastMatrix4;
+ 
+ 	public function new() {
+-		super("Empty");
+-	}
+-
+-	override public function init() {
+ 
+ 		// Projection matrix: 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
+-		var projection = Matrix4.perspectiveProjection(45.0, 4.0 / 3.0, 0.1, 100.0);
++		var projection = FastMatrix4.perspectiveProjection(45.0, 4.0 / 3.0, 0.1, 100.0);
+ 		// Or, for an ortho camera
+ 		//var projection = Matrix4.orthogonalProjection(-10.0, 10.0, -10.0, 10.0, 0.0, 100.0); // In world coordinates
+ 
+ 		// Camera matrix
+-		var view = Matrix4.lookAt(new Vector3(4, 3, 3), // Camera is at (4, 3, 3), in World Space
+-								  new Vector3(0, 0, 0), // and looks at the origin
+-								  new Vector3(0, 1, 0) // Head is up (set to (0, -1, 0) to look upside-down)
++		var view = FastMatrix4.lookAt(new FastVector3(4, 3, 3), // Camera is at (4, 3, 3), in World Space
++								  new FastVector3(0, 0, 0), // and looks at the origin
++								  new FastVector3(0, 1, 0) // Head is up (set to (0, -1, 0) to look upside-down)
+ 		);
+ 
+ 		// Model matrix: an identity matrix (model will be at the origin)
+-		var model = Matrix4.identity();
++		var model = FastMatrix4.identity();
+ 		// Our ModelViewProjection: multiplication of our 3 matrices
+ 		// Remember, matrix multiplication is the other way around
+-		mvp = Matrix4.identity();
++		mvp = FastMatrix4.identity();
+ 		mvp = mvp.multmat(projection);
+ 		mvp = mvp.multmat(view);
+ 		mvp = mvp.multmat(model);
+@@ -138,17 +130,15 @@ class Empty extends Game {
+ 
+   }
+ 
+-	override public function render(frame:Framebuffer) {
++	public function render(frame:Framebuffer) {
+ 		// A graphics object which lets us perform 3D operations
+ 		frame.usingG4({
+-			// Set depth mode
+-			g4.setDepthMode(true, CompareMode.Less);
+ 			// Clear screen
+ 			g4.clear(Color.fromFloats(0.0, 0.0, 0.3), 1.0);
+ 
+-			g4.usingProgram("simple.vert","simple.frag",{
+-				program.set_MVP(mvp);
+-				program.draw(buffer);
++			g4.usingPipeline("simple.vert","simple.frag",{depth:{write:true, mode: CompareMode.Less}},{
++				pipeline.set_MVP(mvp);
++				pipeline.draw(buffer);
+ 			});
+ 
+ 		});
+diff --git a/tutorial04/Sources/Main.hx b/tutorial04/Sources/Main.hx
+index 663ea3d..57c9fa8 100644
+--- a/tutorial04/Sources/Main.hx
++++ b/tutorial04/Sources/Main.hx
+@@ -1,10 +1,15 @@
+ package;
+ 
+-import kha.Starter;
++import kha.System;
+ 
+ class Main {
++
+ 	public static function main() {
+-		var starter = new Starter();
+-		starter.start(new Empty());
++		System.init("Empty", 640, 480, init);
++	}
++
++	static function init() {
++		var game = new Empty();
++		System.notifyOnRender(game.render);
+ 	}
+ }
+diff --git a/tutorial04/khafile.js b/tutorial04/khafile.js
+new file mode 100644
+index 0000000..b28b1a1
+--- /dev/null
++++ b/tutorial04/khafile.js
+@@ -0,0 +1,7 @@
++var project = new Project('Empty');
++
++project.addSources('Sources');
++project.addShaders('Sources/Shaders/**');
++project.addLibrary("khage");
++
++return project;
+\ No newline at end of file
+diff --git a/tutorial04/project.kha b/tutorial04/project.kha
+deleted file mode 100644
+index 1bd2fc9..0000000
+--- a/tutorial04/project.kha
++++ /dev/null
+@@ -1,14 +0,0 @@
+-{
+-	"format": 2,
+-	"game": {
+-		"name": "Empty",
+-		"width": 640,
+-		"height": 480,
+-		"antiAliasingSamples": 2
+-	},
+-	"libraries": [
+-		"khage"
+-	],
+-	"assets": [],
+-	"rooms": []
+-}
+diff --git a/tutorial05/Sources/Empty.hx b/tutorial05/Sources/Empty.hx
+index 68f56e0..9015c3a 100644
+--- a/tutorial05/Sources/Empty.hx
++++ b/tutorial05/Sources/Empty.hx
+@@ -1,24 +1,21 @@
+ package ;
+ 
+-import kha.Game;
++import kha.Assets;
+ import kha.Framebuffer;
+ import kha.Color;
+ 
+-import kha.Loader;
+-import kha.LoadingScreen;
+-import kha.Configuration;
+ import kha.Image;
+ 
+ 
+ import kha.graphics4.Usage;
+ import kha.graphics4.CompareMode;
+-import kha.math.Matrix4;
+-import kha.math.Vector3;
++import kha.math.FastMatrix4;
++import kha.math.FastVector3;
+ 
+ import khage.g4.Buffer;
+ using Khage;
+ 
+-class Empty extends Game {
++class Empty{
+     
+ 	// An array of vertices to form a cube
+ 	static var vertices:Array<Float> = [
+@@ -100,41 +97,35 @@ class Empty extends Game {
+ 	];
+ 
+ 	var buffer:Buffer<{pos:Vec3,uv:Vec2}>;
+-	var mvp:Matrix4;
++	var mvp:FastMatrix4;
+     var image:Image;
+ 
+ 	public function new() {
+-		super("Empty");
+-	}
+-
+-	override public function init() {
+-        Configuration.setScreen(new LoadingScreen());
+-
+-        // Load room with our texture
+-        Loader.the.loadRoom("room0", loadingFinished);
++        // Load all assets defined in khafile.js
++    	Assets.loadEverything(loadingFinished);
+     }
+ 
+ 	function loadingFinished() {
+ 
+ 		// Texture
+-		image = Loader.the.getImage("uvtemplate");
++		image = Assets.images.uvtemplate;
+ 
+ 		// Projection matrix: 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
+-		var projection = Matrix4.perspectiveProjection(45.0, 4.0 / 3.0, 0.1, 100.0);
++		var projection = FastMatrix4.perspectiveProjection(45.0, 4.0 / 3.0, 0.1, 100.0);
+ 		// Or, for an ortho camera
+ 		//var projection = Matrix4.orthogonalProjection(-10.0, 10.0, -10.0, 10.0, 0.0, 100.0); // In world coordinates
+ 
+ 		// Camera matrix
+-		var view = Matrix4.lookAt(new Vector3(4, 3, 3), // Camera is at (4, 3, 3), in World Space
+-								  new Vector3(0, 0, 0), // and looks at the origin
+-								  new Vector3(0, 1, 0) // Head is up (set to (0, -1, 0) to look upside-down)
++		var view = FastMatrix4.lookAt(new FastVector3(4, 3, 3), // Camera is at (4, 3, 3), in World Space
++								  new FastVector3(0, 0, 0), // and looks at the origin
++								  new FastVector3(0, 1, 0) // Head is up (set to (0, -1, 0) to look upside-down)
+ 		);
+ 
+ 		// Model matrix : an identity matrix (model will be at the origin)
+-		var model = Matrix4.identity();
++		var model = FastMatrix4.identity();
+ 		// Our ModelViewProjection : multiplication of our 3 matrices
+ 		// Remember, matrix multiplication is the other way around
+-		mvp = Matrix4.identity();
++		mvp = FastMatrix4.identity();
+ 		mvp = mvp.multmat(projection);
+ 		mvp = mvp.multmat(view);
+ 		mvp = mvp.multmat(model);
+@@ -152,22 +143,18 @@ class Empty extends Game {
+ 		for (i in 0...numVertices) {
+ 			buffer.writeIndex(i);
+ 		}
+-
+-		Configuration.setScreen(this);
+   }
+ 
+-	override public function render(frame:Framebuffer) {
++	public function render(frame:Framebuffer) {
+ 		// A graphics object which lets us perform 3D operations
+ 		frame.usingG4({
+-			// Set depth mode
+-			g4.setDepthMode(true, CompareMode.Less);
+ 			// Clear screen
+ 			g4.clear(Color.fromFloats(0.0, 0.0, 0.3), 1.0);
+ 
+-			g4.usingProgram("simple.vert","simple.frag",{
+-				program.set_MVP(mvp);
+-				program.set_myTextureSampler(image);
+-				program.draw(buffer);
++			g4.usingPipeline("simple.vert","simple.frag",{depth:{write:true, mode: CompareMode.Less}},{
++				pipeline.set_MVP(mvp);
++				pipeline.set_myTextureSampler(image);
++				pipeline.draw(buffer);
+ 			});
+ 
+ 		});
+diff --git a/tutorial05/Sources/Main.hx b/tutorial05/Sources/Main.hx
+index 663ea3d..57c9fa8 100644
+--- a/tutorial05/Sources/Main.hx
++++ b/tutorial05/Sources/Main.hx
+@@ -1,10 +1,15 @@
+ package;
+ 
+-import kha.Starter;
++import kha.System;
+ 
+ class Main {
++
+ 	public static function main() {
+-		var starter = new Starter();
+-		starter.start(new Empty());
++		System.init("Empty", 640, 480, init);
++	}
++
++	static function init() {
++		var game = new Empty();
++		System.notifyOnRender(game.render);
+ 	}
+ }
+diff --git a/tutorial05/khafile.js b/tutorial05/khafile.js
+new file mode 100644
+index 0000000..d05687d
+--- /dev/null
++++ b/tutorial05/khafile.js
+@@ -0,0 +1,8 @@
++var project = new Project('Empty');
++
++project.addSources('Sources');
++project.addShaders('Sources/Shaders/**');
++project.addAssets('Assets/**');
++project.addLibrary("khage");
++
++return project;
+\ No newline at end of file
+diff --git a/tutorial05/project.kha b/tutorial05/project.kha
+deleted file mode 100644
+index 0ad7863..0000000
+--- a/tutorial05/project.kha
++++ /dev/null
+@@ -1,29 +0,0 @@
+-{
+-	"format": 2,
+-	"game": {
+-		"name": "Empty",
+-		"width": 640,
+-		"height": 480,
+-		"antiAliasingSamples": 2
+-	},
+-	"libraries": [
+-		"khage"
+-	],
+-	"assets": [
+-		{
+-			"file": "uvtemplate.png",
+-			"name": "uvtemplate",
+-			"type": "image"
+-		}
+-	],
+-	"rooms": [
+-		{
+-			"assets": [
+-				"uvtemplate"
+-			],
+-			"name": "room0",
+-			"neighbours": [],
+-			"parent": null
+-		}
+-	]
+-}
+diff --git a/tutorial06/Sources/Empty.hx b/tutorial06/Sources/Empty.hx
+index 8d3b8d7..d49602a 100644
+--- a/tutorial06/Sources/Empty.hx
++++ b/tutorial06/Sources/Empty.hx
+@@ -1,24 +1,22 @@
+ package ;
+ 
+-import kha.Game;
++import kha.Assets;
++import kha.Scheduler;
+ import kha.Framebuffer;
+ import kha.Color;
+-import kha.Loader;
+-import kha.LoadingScreen;
+-import kha.Configuration;
++
+ import kha.Image;
+-import kha.Scheduler;
+ import kha.Key;
+ import kha.graphics4.Usage;
+ import kha.graphics4.CompareMode;
+-import kha.math.Matrix4;
+-import kha.math.Vector3;
++import kha.math.FastMatrix4;
++import kha.math.FastVector3;
+ 
+ import khage.g4.Buffer;
+ using Khage;
+ 
+ 
+-class Empty extends Game {
++class Empty {
+ 
+ 	// An array of vertices to form a cube
+ 	static var vertices:Array<Float> = [
+@@ -100,18 +98,18 @@ class Empty extends Game {
+ 	];
+ 
+ 	var buffer:Buffer<{pos:Vec3,uv:Vec2}>;
+-	var mvp:Matrix4;
++	var mvp:FastMatrix4;
+ 
+-	var model:Matrix4;
+-	var view:Matrix4;
+-	var projection:Matrix4;
++	var model:FastMatrix4;
++	var view:FastMatrix4;
++	var projection:FastMatrix4;
+ 
+ 
+     var image:Image;
+ 
+     var lastTime = 0.0;
+ 
+-	var position:Vector3 = new Vector3(0, 0, 5); // Initial position: on +Z
++	var position:FastVector3 = new FastVector3(0, 0, 5); // Initial position: on +Z
+ 	var horizontalAngle = 3.14; // Initial horizontal angle: toward -Z
+ 	var verticalAngle = 0.0; // Initial vertical angle: none
+ 
+@@ -130,37 +128,31 @@ class Empty extends Game {
+ 	var mouseSpeed = 0.005;
+ 
+ 	public function new() {
+-		super("Empty");
+-	}
+-
+-	override public function init() {
+-        Configuration.setScreen(new LoadingScreen());
+-
+-        // Load room with our texture
+-        Loader.the.loadRoom("room0", loadingFinished);
++		// Load all assets defined in khafile.js
++    	Assets.loadEverything(loadingFinished);
+     }
+ 
+ 	function loadingFinished() {
+ 
+ 		// Texture
+-		image = Loader.the.getImage("uvtemplate");
++		image = Assets.images.uvtemplate;
+ 
+ 		// Projection matrix: 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
+-		projection = Matrix4.perspectiveProjection(45.0, 4.0 / 3.0, 0.1, 100.0);
++		projection = FastMatrix4.perspectiveProjection(45.0, 4.0 / 3.0, 0.1, 100.0);
+ 		// Or, for an ortho camera
+ 		//projection = Matrix4.orthogonalProjection(-10.0, 10.0, -10.0, 10.0, 0.0, 100.0); // In world coordinates
+ 
+ 		// Camera matrix
+-		view = Matrix4.lookAt(new Vector3(4, 3, 3), // Camera is at (4, 3, 3), in World Space
+-							  new Vector3(0, 0, 0), // and looks at the origin
+-							  new Vector3(0, 1, 0) // Head is up (set to (0, -1, 0) to look upside-down)
++		view = FastMatrix4.lookAt(new FastVector3(4, 3, 3), // Camera is at (4, 3, 3), in World Space
++							  new FastVector3(0, 0, 0), // and looks at the origin
++							  new FastVector3(0, 1, 0) // Head is up (set to (0, -1, 0) to look upside-down)
+ 		);
+ 
+ 		// Model matrix: an identity matrix (model will be at the origin)
+-		model = Matrix4.identity();
++		model = FastMatrix4.identity();
+ 		// Our ModelViewProjection: multiplication of our 3 matrices
+ 		// Remember, matrix multiplication is the other way around
+-		mvp = Matrix4.identity();
++		mvp = FastMatrix4.identity();
+ 		mvp = mvp.multmat(projection);
+ 		mvp = mvp.multmat(view);
+ 		mvp = mvp.multmat(model);
+@@ -184,29 +176,31 @@ class Empty extends Game {
+ 
+ 		// Used to calculate delta time
+ 		lastTime = Scheduler.time();
+-
+-		Configuration.setScreen(this);
+   }
+ 
+-	override public function render(frame:Framebuffer) {
++	public function render(frame:Framebuffer) {
++        if(image == null){
++            return; //not everything is loaded, skip update
++        }
+ 		// A graphics object which lets us perform 3D operations
+ 		frame.usingG4({
+-			// Set depth mode
+-			g4.setDepthMode(true, CompareMode.Less);
+ 			// Clear screen
+ 			g4.clear(Color.fromFloats(0.0, 0.0, 0.3), 1.0);
+ 
+-			g4.usingProgram("simple.vert","simple.frag",{
+-				program.set_MVP(mvp);
+-				program.set_myTextureSampler(image);
+-				program.draw(buffer);
++			g4.usingPipeline("simple.vert","simple.frag",{depth:{write:true, mode: CompareMode.Less}},{
++				pipeline.set_MVP(mvp);
++				pipeline.set_myTextureSampler(image);
++				pipeline.draw(buffer);
+ 			});
+ 
+ 		});
+ 
+   }
+ 
+-    override public function update() {
++    public function update() {
++        if(image == null){
++            return; //not everything is loaded, skip update
++        }
+     	// Compute time difference between current and last frame
+ 		var deltaTime = Scheduler.time() - lastTime;
+ 		lastTime = Scheduler.time();
+@@ -218,14 +212,14 @@ class Empty extends Game {
+ 		}
+ 
+ 		// Direction : Spherical coordinates to Cartesian coordinates conversion
+-		var direction = new Vector3(
++		var direction = new FastVector3(
+ 			Math.cos(verticalAngle) * Math.sin(horizontalAngle),
+ 			Math.sin(verticalAngle),
+ 			Math.cos(verticalAngle) * Math.cos(horizontalAngle)
+ 		);
+ 
+ 		// Right vector
+-		var right = new Vector3(
++		var right = new FastVector3(
+ 			Math.sin(horizontalAngle - 3.14 / 2.0),
+ 			0,
+ 			Math.cos(horizontalAngle - 3.14 / 2.0)
+@@ -256,13 +250,13 @@ class Empty extends Game {
+ 		var look = position.add(direction);
+ 
+ 		// Camera matrix
+-		view = Matrix4.lookAt(position, // Camera is here
++		view = FastMatrix4.lookAt(position, // Camera is here
+ 							  look, // and looks here : at the same position, plus "direction"
+ 							  up // Head is up (set to (0, -1, 0) to look upside-down)
+ 		);
+ 
+ 		// Update model-view-projection matrix
+-		mvp = Matrix4.identity();
++		mvp = FastMatrix4.identity();
+ 		mvp = mvp.multmat(projection);
+ 		mvp = mvp.multmat(view);
+ 		mvp = mvp.multmat(model);
+@@ -279,7 +273,7 @@ class Empty extends Game {
+     	isMouseDown = false;
+     }
+ 
+-    function onMouseMove(x:Int, y:Int) {
++    function onMouseMove(x:Int, y:Int, movementX : Int, movementY : Int) {
+     	mouseDeltaX = x - mouseX;
+     	mouseDeltaY = y - mouseY;
+ 
+diff --git a/tutorial06/Sources/Main.hx b/tutorial06/Sources/Main.hx
+index 663ea3d..1c9a7dc 100644
+--- a/tutorial06/Sources/Main.hx
++++ b/tutorial06/Sources/Main.hx
+@@ -1,10 +1,17 @@
+ package;
+ 
+-import kha.Starter;
++import kha.System;
++import kha.Scheduler;
+ 
+ class Main {
++
+ 	public static function main() {
+-		var starter = new Starter();
+-		starter.start(new Empty());
++		System.init("Empty", 640, 480, init);
++	}
++
++	static function init() {
++		var game = new Empty();
++		System.notifyOnRender(game.render);
++        Scheduler.addTimeTask(game.update, 0, 1 / 60);
+ 	}
+ }
+diff --git a/tutorial06/khafile.js b/tutorial06/khafile.js
+new file mode 100644
+index 0000000..d05687d
+--- /dev/null
++++ b/tutorial06/khafile.js
+@@ -0,0 +1,8 @@
++var project = new Project('Empty');
++
++project.addSources('Sources');
++project.addShaders('Sources/Shaders/**');
++project.addAssets('Assets/**');
++project.addLibrary("khage");
++
++return project;
+\ No newline at end of file
+diff --git a/tutorial06/project.kha b/tutorial06/project.kha
+deleted file mode 100644
+index 0ad7863..0000000
+--- a/tutorial06/project.kha
++++ /dev/null
+@@ -1,29 +0,0 @@
+-{
+-	"format": 2,
+-	"game": {
+-		"name": "Empty",
+-		"width": 640,
+-		"height": 480,
+-		"antiAliasingSamples": 2
+-	},
+-	"libraries": [
+-		"khage"
+-	],
+-	"assets": [
+-		{
+-			"file": "uvtemplate.png",
+-			"name": "uvtemplate",
+-			"type": "image"
+-		}
+-	],
+-	"rooms": [
+-		{
+-			"assets": [
+-				"uvtemplate"
+-			],
+-			"name": "room0",
+-			"neighbours": [],
+-			"parent": null
+-		}
+-	]
+-}
+diff --git a/tutorial07/Sources/Empty.hx b/tutorial07/Sources/Empty.hx
+index 28de7ef..3f6e60b 100644
+--- a/tutorial07/Sources/Empty.hx
++++ b/tutorial07/Sources/Empty.hx
+@@ -1,11 +1,8 @@
+ package ;
+ 
+-import kha.Game;
++import kha.Assets;
+ import kha.Framebuffer;
+ import kha.Color;
+-import kha.Loader;
+-import kha.LoadingScreen;
+-import kha.Configuration;
+ import kha.Image;
+ import kha.Scheduler;
+ import kha.Key;
+@@ -13,26 +10,26 @@ import kha.Key;
+ import kha.graphics4.Usage;
+ 
+ import kha.graphics4.CompareMode;
+-import kha.math.Matrix4;
+-import kha.math.Vector3;
++import kha.math.FastMatrix4;
++import kha.math.FastVector3;
+ 
+ import khage.g4.Buffer;
+ using Khage;
+ 
+-class Empty extends Game {
++class Empty{
+ 
+ 	var buffer:Buffer<{pos:Vec3,uv:Vec2,nor:Vec3}>;
+-	var mvp:Matrix4;
++	var mvp:FastMatrix4;
+ 
+-	var model:Matrix4;
+-	var view:Matrix4;
+-	var projection:Matrix4;
++	var model:FastMatrix4;
++	var view:FastMatrix4;
++	var projection:FastMatrix4;
+ 
+     var image:Image;
+ 
+     var lastTime = 0.0;
+ 
+-	var position:Vector3 = new Vector3(0, 0, 5); // Initial position: on +Z
++	var position:FastVector3 = new FastVector3(0, 0, 5); // Initial position: on +Z
+ 	var horizontalAngle = 3.14; // Initial horizontal angle: toward -Z
+ 	var verticalAngle = 0.0; // Initial vertical angle: none
+ 
+@@ -51,43 +48,37 @@ class Empty extends Game {
+ 	var mouseSpeed = 0.005;
+ 
+ 	public function new() {
+-		super("Empty");
+-	}
+-
+-	override public function init() {
+-        Configuration.setScreen(new LoadingScreen());
+-
+-        // Load room with our texture and obj data
+-        Loader.the.loadRoom("room0", loadingFinished);
++		// Load all assets defined in khafile.js
++    	Assets.loadEverything(loadingFinished);
+     }
+ 
+ 	function loadingFinished() {
+ 
+ 		// Texture
+-		image = Loader.the.getImage("uvmap");
++		image = Assets.images.uvmap;
+ 
+ 		// Projection matrix: 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
+-		projection = Matrix4.perspectiveProjection(45.0, 4.0 / 3.0, 0.1, 100.0);
++		projection = FastMatrix4.perspectiveProjection(45.0, 4.0 / 3.0, 0.1, 100.0);
+ 		// Or, for an ortho camera
+ 		//projection = Matrix4.orthogonalProjection(-10.0, 10.0, -10.0, 10.0, 0.0, 100.0); // In world coordinates
+ 
+ 		// Camera matrix
+-		view = Matrix4.lookAt(new Vector3(4, 3, 3), // Camera is at (4, 3, 3), in World Space
+-							  new Vector3(0, 0, 0), // and looks at the origin
+-							  new Vector3(0, 1, 0) // Head is up (set to (0, -1, 0) to look upside-down)
++		view = FastMatrix4.lookAt(new FastVector3(4, 3, 3), // Camera is at (4, 3, 3), in World Space
++							  new FastVector3(0, 0, 0), // and looks at the origin
++							  new FastVector3(0, 1, 0) // Head is up (set to (0, -1, 0) to look upside-down)
+ 		);
+ 
+ 		// Model matrix: an identity matrix (model will be at the origin)
+-		model = Matrix4.identity();
++		model = FastMatrix4.identity();
+ 		// Our ModelViewProjection: multiplication of our 3 matrices
+ 		// Remember, matrix multiplication is the other way around
+-		mvp = Matrix4.identity();
++		mvp = FastMatrix4.identity();
+ 		mvp = mvp.multmat(projection);
+ 		mvp = mvp.multmat(view);
+ 		mvp = mvp.multmat(model);
+ 
+ 		// Parse .obj file
+-		var obj = new ObjLoader(Loader.the.getBlob("cube").toString());
++		var obj = new ObjLoader(Assets.blobs.cube_obj.toString());
+ 		var data = obj.data;
+ 		var indices = obj.indices;
+ 
+@@ -111,28 +102,31 @@ class Empty extends Game {
+ 
+ 		// Used to calculate delta time
+ 		lastTime = Scheduler.time();
+-
+-		Configuration.setScreen(this);
+     }
+ 
+-	override public function render(frame:Framebuffer) {
++	public function render(frame:Framebuffer) {
++        if(image == null){
++            return; //not everything is loaded, skip update
++        }
+ 		// A graphics object which lets us perform 3D operations
+ 		frame.usingG4({
+-			// Set depth mode
+-			g4.setDepthMode(true, CompareMode.Less);
++			
+ 			// Clear screen
+ 			g4.clear(Color.fromFloats(0.0, 0.0, 0.3), 1.0);
+ 
+-			g4.usingProgram("simple.vert","simple.frag",{
+-				program.set_MVP(mvp);
+-				program.set_myTextureSampler(image);
+-				program.draw(buffer);
++			g4.usingPipeline("simple.vert","simple.frag",{cull:{mode: CullMode.CounterClockwise}, depth:{write:true, mode: CompareMode.Less}},{
++				pipeline.set_MVP(mvp);
++				pipeline.set_myTextureSampler(image);
++				pipeline.draw(buffer);
+ 			});
+ 
+ 		});
+   }
+ 
+-    override public function update() {
++    public function update() {
++        if(image == null){
++            return; //not everything is loaded, skip update
++        }
+     	// Compute time difference between current and last frame
+ 		var deltaTime = Scheduler.time() - lastTime;
+ 		lastTime = Scheduler.time();
+@@ -144,14 +138,14 @@ class Empty extends Game {
+ 		}
+ 
+ 		// Direction : Spherical coordinates to Cartesian coordinates conversion
+-		var direction = new Vector3(
++		var direction = new FastVector3(
+ 			Math.cos(verticalAngle) * Math.sin(horizontalAngle),
+ 			Math.sin(verticalAngle),
+ 			Math.cos(verticalAngle) * Math.cos(horizontalAngle)
+ 		);
+ 
+ 		// Right vector
+-		var right = new Vector3(
++		var right = new FastVector3(
+ 			Math.sin(horizontalAngle - 3.14 / 2.0),
+ 			0,
+ 			Math.cos(horizontalAngle - 3.14 / 2.0)
+@@ -182,13 +176,13 @@ class Empty extends Game {
+ 		var look = position.add(direction);
+ 
+ 		// Camera matrix
+-		view = Matrix4.lookAt(position, // Camera is here
++		view = FastMatrix4.lookAt(position, // Camera is here
+ 							  look, // and looks here : at the same position, plus "direction"
+ 							  up // Head is up (set to (0, -1, 0) to look upside-down)
+ 		);
+ 
+ 		// Update model-view-projection matrix
+-		mvp = Matrix4.identity();
++		mvp = FastMatrix4.identity();
+ 		mvp = mvp.multmat(projection);
+ 		mvp = mvp.multmat(view);
+ 		mvp = mvp.multmat(model);
+@@ -205,7 +199,7 @@ class Empty extends Game {
+     	isMouseDown = false;
+     }
+ 
+-    function onMouseMove(x:Int, y:Int) {
++    function onMouseMove(x:Int, y:Int, movementX : Int, movementY : Int) {
+     	mouseDeltaX = x - mouseX;
+     	mouseDeltaY = y - mouseY;
+ 
+diff --git a/tutorial07/Sources/Main.hx b/tutorial07/Sources/Main.hx
+index 663ea3d..1c9a7dc 100644
+--- a/tutorial07/Sources/Main.hx
++++ b/tutorial07/Sources/Main.hx
+@@ -1,10 +1,17 @@
+ package;
+ 
+-import kha.Starter;
++import kha.System;
++import kha.Scheduler;
+ 
+ class Main {
++
+ 	public static function main() {
+-		var starter = new Starter();
+-		starter.start(new Empty());
++		System.init("Empty", 640, 480, init);
++	}
++
++	static function init() {
++		var game = new Empty();
++		System.notifyOnRender(game.render);
++        Scheduler.addTimeTask(game.update, 0, 1 / 60);
+ 	}
+ }
+diff --git a/tutorial07/khafile.js b/tutorial07/khafile.js
+new file mode 100644
+index 0000000..d05687d
+--- /dev/null
++++ b/tutorial07/khafile.js
+@@ -0,0 +1,8 @@
++var project = new Project('Empty');
++
++project.addSources('Sources');
++project.addShaders('Sources/Shaders/**');
++project.addAssets('Assets/**');
++project.addLibrary("khage");
++
++return project;
+\ No newline at end of file
+diff --git a/tutorial07/project.kha b/tutorial07/project.kha
+deleted file mode 100644
+index 529756c..0000000
+--- a/tutorial07/project.kha
++++ /dev/null
+@@ -1,35 +0,0 @@
+-{
+-	"format": 2,
+-	"game": {
+-		"name": "Empty",
+-		"width": 640,
+-		"height": 480,
+-		"antiAliasingSamples": 2
+-	},
+-	"libraries": [
+-		"khage"
+-	],
+-	"assets": [
+-		{
+-			"file": "uvmap.png",
+-			"name": "uvmap",
+-			"type": "image"
+-		},
+-		{
+-			"file": "cube.obj",
+-			"name": "cube",
+-			"type": "blob"
+-		}
+-	],
+-	"rooms": [
+-		{
+-			"assets": [
+-				"uvmap",
+-				"cube"
+-			],
+-			"name": "room0",
+-			"neighbours": [],
+-			"parent": null
+-		}
+-	]
+-}
+diff --git a/tutorial08/Sources/Empty.hx b/tutorial08/Sources/Empty.hx
+index 1b7e39e..63eb76d 100644
+--- a/tutorial08/Sources/Empty.hx
++++ b/tutorial08/Sources/Empty.hx
+@@ -1,37 +1,34 @@
+ package ;
+ 
+-import kha.Game;
++import kha.Assets;
+ import kha.Framebuffer;
+ import kha.Color;
+-import kha.Loader;
+-import kha.LoadingScreen;
+-import kha.Configuration;
+ import kha.Image;
+ import kha.Scheduler;
+ import kha.Key;
+ 
+ import kha.graphics4.Usage;
+ import kha.graphics4.CompareMode;
+-import kha.math.Matrix4;
+-import kha.math.Vector3;
++import kha.math.FastMatrix4;
++import kha.math.FastVector3;
+ 
+-import kha.g4.Buffer;
++import khage.g4.Buffer;
+ using Khage;
+ 
+-class Empty extends Game {
++class Empty {
+ 
+ 	var buffer: Buffer<{pos:Vec3,uv:Vec2,nor:Vec3}>;
+-	var mvp:Matrix4;
++	var mvp:FastMatrix4;
+ 
+-	var model:Matrix4;
+-	var view:Matrix4;
+-	var projection:Matrix4;
++	var model:FastMatrix4;
++	var view:FastMatrix4;
++	var projection:FastMatrix4;
+ 
+     var image:Image;
+ 
+     var lastTime = 0.0;
+ 
+-	var position:Vector3 = new Vector3(0, 0, 5); // Initial position: on +Z
++	var position:FastVector3 = new FastVector3(0, 0, 5); // Initial position: on +Z
+ 	var horizontalAngle = 3.14; // Initial horizontal angle: toward -Z
+ 	var verticalAngle = 0.0; // Initial vertical angle: none
+ 
+@@ -50,42 +47,36 @@ class Empty extends Game {
+ 	var mouseSpeed = 0.005;
+ 
+ 	public function new() {
+-		super("Empty");
+-	}
+-
+-	override public function init() {
+-        Configuration.setScreen(new LoadingScreen());
+-
+-        // Load room with our texture and obj data
+-        Loader.the.loadRoom("room0", loadingFinished);
++		// Load all assets defined in khafile.js
++    	Assets.loadEverything(loadingFinished);
+     }
+ 
+ 	function loadingFinished() {
+ 		// Texture
+-		image = Loader.the.getImage("uvmap");
++		image = Assets.images.uvmap;
+ 
+ 		// Projection matrix: 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
+-		projection = Matrix4.perspectiveProjection(45.0, 4.0 / 3.0, 0.1, 100.0);
++		projection = FastMatrix4.perspectiveProjection(45.0, 4.0 / 3.0, 0.1, 100.0);
+ 		// Or, for an ortho camera
+ 		//projection = Matrix4.orthogonalProjection(-10.0, 10.0, -10.0, 10.0, 0.0, 100.0); // In world coordinates
+ 
+ 		// Camera matrix
+-		view = Matrix4.lookAt(new Vector3(4, 3, 3), // Camera is at (4, 3, 3), in World Space
+-							  new Vector3(0, 0, 0), // and looks at the origin
+-							  new Vector3(0, 1, 0) // Head is up (set to (0, -1, 0) to look upside-down)
++		view = FastMatrix4.lookAt(new FastVector3(4, 3, 3), // Camera is at (4, 3, 3), in World Space
++							  new FastVector3(0, 0, 0), // and looks at the origin
++							  new FastVector3(0, 1, 0) // Head is up (set to (0, -1, 0) to look upside-down)
+ 		);
+ 
+ 		// Model matrix: an identity matrix (model will be at the origin)
+-		model = Matrix4.identity();
++		model = FastMatrix4.identity();
+ 		// Our ModelViewProjection: multiplication of our 3 matrices
+ 		// Remember, matrix multiplication is the other way around
+-		mvp = Matrix4.identity();
++		mvp = FastMatrix4.identity();
+ 		mvp = mvp.multmat(projection);
+ 		mvp = mvp.multmat(view);
+ 		mvp = mvp.multmat(model);
+ 
+ 		// Parse .obj file
+-		var obj = new ObjLoader(Loader.the.getBlob("suzanne").toString());
++		var obj = new ObjLoader(Assets.blobs.suzanne_obj.toString());
+ 		var data = obj.data;
+ 		var indices = obj.indices;
+ 
+@@ -109,32 +100,34 @@ class Empty extends Game {
+ 
+ 		// Used to calculate delta time
+ 		lastTime = Scheduler.time();
+-
+-		Configuration.setScreen(this);
+     }
+ 
+-	override public function render(frame:Framebuffer) {
++	public function render(frame:Framebuffer) {
++        if(image == null){
++            return; //not everything is loaded, skip update
++        }
+ 		// A graphics object which lets us perform 3D operations
+ 		frame.usingG4({
+-			// Set depth mode
+-			g4.setDepthMode(true, CompareMode.Less);
+ 			// Clear screen
+ 			g4.clear(Color.fromFloats(0.0, 0.0, 0.3), 1.0);
+ 
+-			g4.usingProgram("simple.vert","simple.frag",{
+-				program.set_MVP(mvp);
+-				program.set_M(model);
+-				program.set_V(view);
+-				program.set_lightPos(4,4,4);
+-				program.set_myTextureSampler(image);
+-				program.draw(buffer);
++			g4.usingPipeline("simple.vert","simple.frag",{cull:{mode: CullMode.CounterClockwise}, depth:{write:true, mode: CompareMode.Less}},{
++				pipeline.set_MVP(mvp);
++				pipeline.set_M(model);
++				pipeline.set_V(view);
++				pipeline.set_lightPos(4,4,4);
++				pipeline.set_myTextureSampler(image);
++				pipeline.draw(buffer);
+ 			});
+ 
+ 		});
+ 
+   }
+ 
+-    override public function update() {
++    public function update() {
++        if(image == null){
++            return; //not everything is loaded, skip update
++        }
+     	// Compute time difference between current and last frame
+ 		var deltaTime = Scheduler.time() - lastTime;
+ 		lastTime = Scheduler.time();
+@@ -146,14 +139,14 @@ class Empty extends Game {
+ 		}
+ 
+ 		// Direction : Spherical coordinates to Cartesian coordinates conversion
+-		var direction = new Vector3(
++		var direction = new FastVector3(
+ 			Math.cos(verticalAngle) * Math.sin(horizontalAngle),
+ 			Math.sin(verticalAngle),
+ 			Math.cos(verticalAngle) * Math.cos(horizontalAngle)
+ 		);
+ 
+ 		// Right vector
+-		var right = new Vector3(
++		var right = new FastVector3(
+ 			Math.sin(horizontalAngle - 3.14 / 2.0),
+ 			0,
+ 			Math.cos(horizontalAngle - 3.14 / 2.0)
+@@ -184,13 +177,13 @@ class Empty extends Game {
+ 		var look = position.add(direction);
+ 
+ 		// Camera matrix
+-		view = Matrix4.lookAt(position, // Camera is here
++		view = FastMatrix4.lookAt(position, // Camera is here
+ 							  look, // and looks here : at the same position, plus "direction"
+ 							  up // Head is up (set to (0, -1, 0) to look upside-down)
+ 		);
+ 
+ 		// Update model-view-projection matrix
+-		mvp = Matrix4.identity();
++		mvp = FastMatrix4.identity();
+ 		mvp = mvp.multmat(projection);
+ 		mvp = mvp.multmat(view);
+ 		mvp = mvp.multmat(model);
+@@ -207,7 +200,7 @@ class Empty extends Game {
+     	isMouseDown = false;
+     }
+ 
+-    function onMouseMove(x:Int, y:Int) {
++    function onMouseMove(x:Int, y:Int, movementX : Int, movementY : Int) {
+     	mouseDeltaX = x - mouseX;
+     	mouseDeltaY = y - mouseY;
+ 
+diff --git a/tutorial08/Sources/Main.hx b/tutorial08/Sources/Main.hx
+index 663ea3d..1c9a7dc 100644
+--- a/tutorial08/Sources/Main.hx
++++ b/tutorial08/Sources/Main.hx
+@@ -1,10 +1,17 @@
+ package;
+ 
+-import kha.Starter;
++import kha.System;
++import kha.Scheduler;
+ 
+ class Main {
++
+ 	public static function main() {
+-		var starter = new Starter();
+-		starter.start(new Empty());
++		System.init("Empty", 640, 480, init);
++	}
++
++	static function init() {
++		var game = new Empty();
++		System.notifyOnRender(game.render);
++        Scheduler.addTimeTask(game.update, 0, 1 / 60);
+ 	}
+ }
+diff --git a/tutorial08/khafile.js b/tutorial08/khafile.js
+new file mode 100644
+index 0000000..d05687d
+--- /dev/null
++++ b/tutorial08/khafile.js
+@@ -0,0 +1,8 @@
++var project = new Project('Empty');
++
++project.addSources('Sources');
++project.addShaders('Sources/Shaders/**');
++project.addAssets('Assets/**');
++project.addLibrary("khage");
++
++return project;
+\ No newline at end of file
+diff --git a/tutorial08/project.kha b/tutorial08/project.kha
+deleted file mode 100644
+index 549fbaa..0000000
+--- a/tutorial08/project.kha
++++ /dev/null
+@@ -1,35 +0,0 @@
+-{
+-	"format": 2,
+-	"game": {
+-		"name": "Empty",
+-		"width": 640,
+-		"height": 480,
+-		"antiAliasingSamples": 2
+-	},
+-	"libraries": [
+-		"khage"
+-	],
+-	"assets": [
+-		{
+-			"file": "uvmap.png",
+-			"name": "uvmap",
+-			"type": "image"
+-		},
+-		{
+-			"file": "suzanne.obj",
+-			"name": "suzanne",
+-			"type": "blob"
+-		}
+-	],
+-	"rooms": [
+-		{
+-			"assets": [
+-				"uvmap",
+-				"suzanne"
+-			],
+-			"name": "room0",
+-			"neighbours": [],
+-			"parent": null
+-		}
+-	]
+-}
