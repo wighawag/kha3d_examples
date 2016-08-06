@@ -19,7 +19,7 @@ class Empty{
 
 	// An array of vertices to form a cube
 	static var vertices:Array<Float> = [
-	    -1.0,-1.0,-1.0,
+		-1.0,-1.0,-1.0,
 		-1.0,-1.0, 1.0,
 		-1.0, 1.0, 1.0,
 		 1.0, 1.0,-1.0,
@@ -101,9 +101,9 @@ class Empty{
   var image:Image;
 
 	public function new() {
-        // Load all assets defined in khafile.js
-	Assets.loadEverything(loadingFinished);
-    }
+		// Load all assets defined in khafile.js
+		Assets.loadEverything(loadingFinished);
+	}
 
 	function loadingFinished() {
 
@@ -117,8 +117,8 @@ class Empty{
 
 		// Camera matrix
 		var view = FastMatrix4.lookAt(new FastVector3(4, 3, 3), // Camera is at (4, 3, 3), in World Space
-								  new FastVector3(0, 0, 0), // and looks at the origin
-								  new FastVector3(0, 1, 0) // Head is up (set to (0, -1, 0) to look upside-down)
+			new FastVector3(0, 0, 0), // and looks at the origin
+			new FastVector3(0, 1, 0) // Head is up (set to (0, -1, 0) to look upside-down)
 		);
 
 		// Model matrix : an identity matrix (model will be at the origin)
@@ -146,6 +146,9 @@ class Empty{
   }
 
 	public function render(frame:Framebuffer) {
+		if(mvp == null){
+			return;
+		}
 		// A graphics object which lets us perform 3D operations
 		frame.usingG4({
 			// Clear screen

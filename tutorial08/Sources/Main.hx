@@ -6,7 +6,7 @@ import kha.Scheduler;
 class Main {
 
 	public static function main() {
-		System.init("Empty", 640, 480, init);
+		System.init({width:640, height: 480}, init);
 	}
 
 	static function init() {
