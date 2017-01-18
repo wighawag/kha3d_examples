@@ -5,4 +5,4 @@ project.addShaders('Sources/Shaders/**');
 project.addAssets('Assets/**');
 project.addLibrary("khage");
 
-return project;
+resolve(project);

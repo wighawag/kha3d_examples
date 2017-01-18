@@ -4,4 +4,4 @@ project.addSources('Sources');
 project.addShaders('Sources/Shaders/**');
 project.addLibrary("khage");
 
-return project;
+resolve(project);
